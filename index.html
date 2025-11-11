@@ -218,6 +218,11 @@
                 };
                 document.addEventListener('visibilitychange', handleVisibilityChange);
                 
+                if (os === 'ios') {
+                    window.location.href = appStoreUrl;
+                    return;
+                }
+                
                 // 앱 열기 시도
                 window.location.href = appScheme;
                 
