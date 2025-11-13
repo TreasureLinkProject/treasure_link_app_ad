@@ -126,6 +126,7 @@
             // const appStoreUrl = 'https://apps.apple.com/app/treasurelink/id6746151115';
             const appStoreUrl = 'https://apps.apple.com/app/treasurelink/id6746151115';
             const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.wb.treasure_link';
+            const androidIntentUrl = `intent://treasurelink.com/#Intent;scheme=treasurelink;package=com.wb.treasure_link;S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
 
             // URL 파라미터 파싱
             function getURLParams() {
@@ -201,73 +202,85 @@
                 return 'other';
             }
             
-            function tryOpenApp() {
-                const os = getMobileOS();
-                const startTime = Date.now();
-                let appOpened = false;
+            function showStoreButtons(message) {
+                const loadingText = document.getElementById('loadingText');
+                const storeButtons = document.getElementById('storeButtons');
                 
-                // 로딩 텍스트 표시
-                document.getElementById('loadingText').textContent = '앱을 여는 중입니다...';
-                document.getElementById('loadingText').style.display = 'block';
-                document.getElementById('storeButtons').style.display = 'none';
+                if (message) {
+                    loadingText.textContent = message;
+                }
                 
-                // 페이지가 백그라운드로 가면 앱이 열린 것으로 판단
-                const handleVisibilityChange = function() {
-                    if (document.hidden) {
-                        appOpened = true;
-                    }
-                };
-                document.addEventListener('visibilitychange', handleVisibilityChange);
-                
+                loadingText.style.display = 'block';
+                storeButtons.style.display = 'block';
+            }
+            
+            function redirectToStore(os) {
                 if (os === 'ios') {
                     window.location.href = appStoreUrl;
+                } else if (os === 'android') {
+                    window.location.href = playStoreUrl;
+                }
+            }
+            
+            function tryOpenApp(os, trigger = 'auto') {
+                if (os !== 'ios' && os !== 'android') {
+                    showStoreButtons('모바일 기기에서 접속해주세요');
                     return;
                 }
                 
-                // 앱 열기 시도
-                window.location.href = appScheme;
+                const loadingText = document.getElementById('loadingText');
+                const storeButtons = document.getElementById('storeButtons');
+                let appOpened = false;
                 
-                // 2초 후 앱이 열리지 않았다면 자동으로 스토어로 이동
-                setTimeout(function() {
-                    document.removeEventListener('visibilitychange', handleVisibilityChange);
-
-                    if (!appOpened && !document.hidden) {
-                        // 앱이 설치되지 않은 경우
-                        document.getElementById('loadingText').textContent = '앱 스토어로 이동합니다...';
-
-                        // OS에 따라 자동으로 스토어로 이동
-                        setTimeout(function() {
-                            if (os === 'ios') {
-                                window.location.href = appStoreUrl;
-                            } else if (os === 'android') {
-                                window.location.href = playStoreUrl;
-                            }
-                        }, 1000);
-                    } else if (appOpened) {
+                loadingText.textContent = trigger === 'auto' ? '앱을 여는 중입니다...' : '앱 실행을 다시 시도하는 중입니다...';
+                loadingText.style.display = 'block';
+                storeButtons.style.display = 'none';
+                
+                const handleVisibilityChange = function() {
+                    if (document.hidden) {
+                        appOpened = true;
+                        cleanup();
                     }
-                }, 2000);
+                };
+                
+                const cleanup = function() {
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    clearTimeout(fallbackTimer);
+                };
+                
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                
+                const fallbackTimer = setTimeout(function() {
+                    if (appOpened) {
+                        return;
+                    }
+                    
+                    cleanup();
+                    loadingText.textContent = '앱이 설치되어 있지 않아 스토어로 이동합니다...';
+                    redirectToStore(os);
+                }, trigger === 'auto' ? 2000 : 1500);
+                
+                if (os === 'android') {
+                    window.location.href = androidIntentUrl;
+                } else {
+                    window.location.href = appScheme;
+                }
             }
-
-            // 앱 열기 시도
+            
             window.addEventListener('load', function() {
                 const os = getMobileOS();
-                // 🎯 페이지 로드 시 즉시 Attribution 추적 (앱 설치 여부 무관)
                 trackClick(os);
-
+                
                 if (os === 'ios' || os === 'android') {
-                    // 바로 앱 열기 시도
-                    setTimeout(tryOpenApp, 500);
+                    setTimeout(function() { tryOpenApp(os); }, 500);
                 } else {
-                    // 데스크톱에서는 스토어 버튼 표시
-                    document.getElementById('loadingText').textContent = '모바일 기기에서 접속해주세요';
-                    document.getElementById('storeButtons').style.display = 'block';
+                    showStoreButtons('모바일 기기에서 접속해주세요');
                 }
-            });
-
-            // Open app button click event
-            document.getElementById('openApp').addEventListener('click', function(e) {
-                e.preventDefault();
-                tryOpenApp();
+                
+                document.getElementById('openApp').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    tryOpenApp(os, 'user');
+                });
             });
             
         })();
