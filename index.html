@@ -251,7 +251,6 @@
 
       window.addEventListener('load', function () {
         const os = getMobileOS();
-        trackClick(os);
 
         if (os === 'android') {
           setTimeout(function () { tryOpenApp(os); }, 500);
