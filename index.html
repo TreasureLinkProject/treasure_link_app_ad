@@ -123,7 +123,7 @@
   <script>
     (function () {
       // App Store & Play Store URLs (기본값)
-      const baseAppStoreUrl = 'https://apps.apple.com/app/treasurelink/id6746151115';
+      const baseAppStoreUrl = 'https://apps.apple.com/kr/app/treasurelink/id6746151115';
       const basePlayStoreUrl = 'https://play.google.com/store/apps/details?id=com.wb.treasure_link';
 
       // URL 파라미터 파싱
@@ -137,7 +137,8 @@
           adset_id: params.get('adset_id'),
           click_id: params.get('fbclid') || params.get('gclid') || params.get('click_id'),
           term: params.get('utm_term') || params.get('term'),
-          referrer_url: window.location.href
+          referrer_url: window.location.href,
+          ppid: params.get('ppid'),
         };
       }
 
@@ -173,7 +174,8 @@
         const params = getURLParams();
 
         if (os === 'ios') {
-          return baseAppStoreUrl;
+          console.log('iOS App Store URL params:', params);
+          return baseAppStoreUrl + (params.ppid ? `?ppid=${encodeURIComponent(params.ppid)}` : '');
         } else if (os === 'android') {
           const referrerParams = [];
           if (params.source) referrerParams.push(`utm_source=${encodeURIComponent(params.source)}`);
@@ -193,6 +195,7 @@
 
       function redirectToStore(os) {
         const storeUrl = buildStoreUrl(os);
+        console.log('Redirecting to store:', storeUrl);
         if (storeUrl) {
           window.location.href = storeUrl;
         }
