@@ -174,7 +174,6 @@
         const params = getURLParams();
 
         if (os === 'ios') {
-          console.log('iOS App Store URL params:', params);
           return baseAppStoreUrl + (params.ppid ? `?ppid=${encodeURIComponent(params.ppid)}` : '');
         } else if (os === 'android') {
           const referrerParams = [];
@@ -195,7 +194,6 @@
 
       function redirectToStore(os) {
         const storeUrl = buildStoreUrl(os);
-        console.log('Redirecting to store:', storeUrl);
         if (storeUrl) {
           window.location.href = storeUrl;
         }
